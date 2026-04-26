@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+
+  pg:
+    image: postgres:17
+    restart: always
+    ports:
+      - "5432:5432"
+    shm_size: 128mb
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
+    environment:
+      POSTGRES_USER: suser
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: model_tuning
+    volumes:
+      - pg:/var/lib/postgresql/data
+
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8087:8080
+    depends_on:
+      pg:
+        condition: service_started
+    environment:
+      ADMINER_DEFAULT_SERVER: pg
+
+#  model_api:
+#    image: model-service
+#    ports:
+#      - 4040:4040
+
+volumes:
+  pg:

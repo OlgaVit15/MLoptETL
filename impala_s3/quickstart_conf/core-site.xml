@@ -1,0 +1,45 @@
+<configuration>
+    <!-- S3A FileSystem properties for MinIO -->
+    <property>
+        <name>fs.s3a.endpoint</name>
+        <value>http://minio:9000</value>
+        <!-- `minio` - это имя сервиса MinIO в Docker Compose.
+             `9000` - это порт MinIO API внутри контейнера. -->
+    </property>
+    <property>
+        <name>fs.s3a.access.key</name>
+        <value>minioadmin</value> <!-- Используйте MINIO_ROOT_USER из docker-compose.yml -->
+    </property>
+    <property>
+        <name>fs.s3a.secret.key</name>
+        <value>minioadmin</value> <!-- Используйте MINIO_ROOT_PASSWORD из docker-compose.yml -->
+    </property>
+    <property>
+        <name>fs.s3a.aws.credentials.provider</name>
+        <value>org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider</value>
+    </property>
+    <property>
+        <name>fs.s3a.path.style.access</name>
+        <value>true</value>
+        <!-- Для MinIO часто требуется path-style access. -->
+    </property>
+    <property>
+        <name>fs.s3a.connection.ssl.enabled</name>
+        <value>false</value>
+        <!-- Для локального MinIO по HTTP. Если используете HTTPS, измените на true. -->
+    </property>
+    <property>
+        <name>fs.s3a.impl</name>
+        <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+        <!-- Указывает, какой класс использовать для работы с S3A. -->
+    </property>
+    <property>
+        <name>fs.s3a.fast.upload</name>
+        <value>true</value>
+        <!-- Опционально: может ускорить загрузку файлов в S3. -->
+    </property>
+    <property>
+        <name>fs.s3a.multipart.size</name>
+        <value>104857600</value> <!-- 100MB, default is 8MB, good for large files -->
+    </property>
+</configuration>

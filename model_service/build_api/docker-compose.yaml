@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  model_api:
+    image: model-service
+    ports:
+      - 4040:4040
+    networks:
+      - quickstart-network
+
+networks:
+  quickstart-network:
+    external: true

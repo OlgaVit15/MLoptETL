@@ -1,0 +1,170 @@
+#docker run --network=quickstart-network -it \
+#  apache/impala:81d5377c2-impala_quickstart_client \
+#  impala-shell -i impalad-1
+# CREATE DATABASE IF NOT EXISTS s3_test_1 LOCATION 's3a://impala/impala-dwh/s3_test_1';
+
+version: "3"
+services:
+  hms:
+    image: apache/impala:81d5377c2-impala_quickstart_hms
+    container_name: quickstart-hive-metastore
+    command: ["hms"]
+    environment:
+      - HADOOP_CLASSPATH=/opt/hive/lib/hadoop-aws-3.1.1.jar:/opt/hive/lib/aws-java-sdk-bundle-1.11.271.jar
+    volumes:
+      - impala-quickstart-warehouse:/var/lib/hive
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/hive/conf:ro
+      - ./lib/hadoop-aws-3.1.1.jar:/opt/hive/lib/hadoop-aws-3.1.1.jar:ro
+      - ./lib/aws-java-sdk-bundle-1.11.271.jar:/opt/hive/lib/aws-java-sdk-bundle-1.11.271.jar:ro
+    ports:
+      - "9083:9083"
+    networks:
+      - quickstart-network
+
+  statestored:
+    image: apache/impala:81d5377c2-statestored
+    ports:
+      - "25010:25010"
+    command: ["-redirect_stdout_stderr=false", "-logtostderr", "-v=1"]
+    volumes:
+      - ./quickstart_conf:/opt/impala/conf:ro
+    networks:
+      - quickstart-network
+
+  catalogd:
+    depends_on:
+      - statestored
+      - hms
+    image: apache/impala:81d5377c2-catalogd
+    ports:
+      - "0.0.0.0:25020:25020"
+    command: ["-redirect_stdout_stderr=false", "-logtostderr", "-v=1",
+              "-hms_event_polling_interval_s=1", "-invalidate_tables_timeout_s=999999"]
+    environment:
+      - HADOOP_CLASSPATH=/opt/impala/lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar
+    volumes:
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/impala/conf:ro
+      - ./lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/hadoop-aws-3.1.1.jar:ro
+      - ./lib/aws-java-sdk-bundle-1.11.271.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar:ro
+    networks:
+      - quickstart-network
+
+  impalad-1:
+    image: apache/impala:81d5377c2-impalad_coord_exec
+    depends_on:
+      - statestored
+      - catalogd
+    ports:
+      - "21000:21000"
+      - "21050:21050"
+      - "25000:25000"
+      - "28000:28000"
+    command: [ "-v=1",
+               "-redirect_stdout_stderr=true",
+               "-logtostderr=false",
+               "-log_dir=/var/impala/logs",
+               "-kudu_master_hosts=kudu-master-1:7051",
+               "-mt_dop_auto_fallback=true",
+               "-default_query_options=mem_limit=1g,mt_dop=0,default_file_format=parquet,default_transactional_type=insert_only,explain_level=3",
+               "-mem_limit=8gb"]
+    environment:
+      - JAVA_TOOL_OPTIONS="-Xmx1g"
+      - HADOOP_CLASSPATH=/opt/impala/lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar
+    volumes:
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/impala/conf:ro
+      - ./lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/hadoop-aws-3.1.1.jar:ro
+      - ./lib/aws-java-sdk-bundle-1.11.271.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar:ro
+      - ./logs:/var/impala/logs
+    networks:
+      - quickstart-network
+
+  impalad-2:
+    image: apache/impala:81d5377c2-impalad_coord_exec
+    depends_on:
+      - statestored
+      - catalogd
+    ports:
+      - "21001:21000" # Shell
+      - "21051:21050" # JDBC
+      - "25001:25000" # Web UI (очень полезно для проверки профайлов)
+      - "28001:28000" # Beeswax
+    command: [ "-v=1",
+               "-redirect_stdout_stderr=true",
+               "-logtostderr=false",
+               "-log_dir=/var/impala/logs",
+               "-kudu_master_hosts=kudu-master-1:7051",
+               "-mt_dop_auto_fallback=true",
+               "-default_query_options=mem_limit=1g,mt_dop=0,default_file_format=parquet,default_transactional_type=insert_only,explain_level=3",
+               "-mem_limit=8gb"
+    ]
+    environment:
+      - JAVA_TOOL_OPTIONS="-Xmx1g"
+      - HADOOP_CLASSPATH=/opt/impala/lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar
+    volumes:
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/impala/conf:ro
+      - ./lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/hadoop-aws-3.1.1.jar:ro
+      - ./lib/aws-java-sdk-bundle-1.11.271.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar:ro
+      - ./logs/impalad-2:/var/impala/logs
+    networks:
+      - quickstart-network
+
+  impalad-3:
+    image: apache/impala:81d5377c2-impalad_coord_exec
+    depends_on:
+      - statestored
+      - catalogd
+    ports:
+      - "21002:21000" # Shell
+      - "21052:21050" # JDBC
+      - "25002:25000" # Web UI (очень полезно для проверки профайлов)
+      - "28002:28000" # Beeswax
+    command: [ "-v=1",
+               "-redirect_stdout_stderr=true",
+               "-logtostderr=false",
+               "-log_dir=/var/impala/logs",
+               "-kudu_master_hosts=kudu-master-1:7051",
+               "-mt_dop_auto_fallback=true",
+               "-default_query_options=mem_limit=1g,mt_dop=0,default_file_format=parquet,default_transactional_type=insert_only,explain_level=3",
+               "-mem_limit=8gb"
+    ]
+    environment:
+      - JAVA_TOOL_OPTIONS="-Xmx1g"
+      - HADOOP_CLASSPATH=/opt/impala/lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar
+    volumes:
+      - impala-quickstart-warehouse:/user/hive/warehouse
+      - ./quickstart_conf:/opt/impala/conf:ro
+      - ./lib/hadoop-aws-3.1.1.jar:/opt/impala/lib/hadoop-aws-3.1.1.jar:ro
+      - ./lib/aws-java-sdk-bundle-1.11.271.jar:/opt/impala/lib/aws-java-sdk-bundle-1.11.271.jar:ro
+      - ./logs/impalad-2:/var/impala/logs
+    networks:
+      - quickstart-network
+
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - impala-minio-data:/data
+    networks:
+      - quickstart-network
+
+
+volumes:
+  impala-quickstart-hms:
+  impala-quickstart-warehouse:
+  impala-minio-data:
+
+networks:
+  quickstart-network:
+    external: true

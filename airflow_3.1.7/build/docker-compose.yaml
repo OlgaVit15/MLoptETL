@@ -1,0 +1,125 @@
+version: '3.8'
+services:
+  airflow_postgres:
+    image: postgres:13
+    container_name: airflow_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5438:5432"
+    volumes:
+      - apg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "airflow" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+#    networks:
+#      - quickstart-network
+
+  airflow-init:
+    build: .
+    image: apache/airflow:3.1.7-python3.13 # Укажите актуальную версию Airflow
+    container_name: airflow-init
+    entrypoint: /bin/bash
+
+    environment:
+      &airflow_common_env # Якорь для общих переменных окружения Airflow
+      _AIRFLOW_DB_MIGRATE: 'true'
+#      _AIRFLOW_WWW_USER_CREATE: 'true'
+#      _AIRFLOW_WWW_USER_USERNAME: admin
+#      _AIRFLOW_WWW_USER_PASSWORD: admin
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor # Используем LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow_postgres:5432/airflow # Имя сервиса 'postgres'
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+    command: >
+      -c "airflow db migrate"
+    volumes:
+      - ../airflow_local/dags:/opt/airflow/dags
+      - ../airflow_local/dags/ddl:/opt/airflow/dags/ddl
+      - ../airflow_local/dags/config:/opt/airflow/dags/config
+      - ../airflow_local/plugins:/opt/airflow/plugins
+      - ../airflow_local/logs:/opt/airflow/logs
+    depends_on:
+      airflow_postgres:
+        condition: service_healthy
+    restart: "no"
+#    networks:
+#      - quickstart-network
+
+  airflow-webserver:
+    build: .
+    image: apache/airflow:3.1.7-python3.13
+    container_name: airflow-webserver
+    command: [ "airflow", "api-server" ]
+    ports:
+      - "8088:8080"
+    environment:
+      <<: *airflow_common_env
+      AIRFLOW__WEBSERVER__WEB_SERVER_PORT: "8080"
+      AIRFLOW__WEBSERVER__WORKERS: "4"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+      #      _PIP_ADDITIONAL_REQUIREMENTS: "pymongo confluent_kafka"
+    volumes:
+      - ../airflow_local/dags:/opt/airflow/dags
+      - ../airflow_local/dags/ddl:/opt/airflow/dags/ddl
+      - ../airflow_local/dags/config:/opt/airflow/dags/config
+      - ../airflow_local/plugins:/opt/airflow/plugins
+      - ../airflow_local/logs:/opt/airflow/logs
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully # Ждем успешной инициализации
+      airflow_postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    develop:
+      watch:
+        - action: sync
+          path: ../airflow_local/
+          target: /opt/airflow/
+#    networks:
+#      - quickstart-network
+
+  airflow-scheduler:
+    build: .
+    image: apache/airflow:3.1.7-python3.13
+    container_name: airflow-scheduler
+    command: [ "airflow", "scheduler" ]
+    environment:
+      <<: *airflow_common_env
+      #      _PIP_ADDITIONAL_REQUIREMENTS: "pymongo confluent_kafka"
+    volumes:
+      - ../airflow_local/dags:/opt/airflow/dags
+      - ../airflow_local/dags/ddl:/opt/airflow/dags/ddl
+      - ../airflow_local/dags/config:/opt/airflow/dags/config
+      - ../airflow_local/plugins:/opt/airflow/plugins
+      - ../airflow_local/logs:/opt/airflow/logs
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      airflow_postgres:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ../airflow_local/
+          target: /opt/airflow/
+#    networks:
+#      - quickstart-network
+
+
+volumes:
+  apg_data:
+
+#networks:
+#  quickstart-network:
+#    external: true
