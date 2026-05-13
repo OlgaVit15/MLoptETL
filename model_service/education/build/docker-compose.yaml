@@ -5,7 +5,7 @@ services:
     image: postgres:17
     restart: always
     ports:
-      - "5432:5432"
+      - "5439:5432"
     shm_size: 128mb
     command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
     environment:
@@ -28,7 +28,7 @@ services:
       ADMINER_DEFAULT_SERVER: pg
 
 #  model_api:
-#    image: model-service
+#    image: ml_models-service
 #    ports:
 #      - 4040:4040
 

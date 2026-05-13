@@ -9,7 +9,7 @@ RANDOM_STATE = 42
 TABLE_NAME = 'ml_training_dataset'
 
 
-def _create_strategy_label(self, df: pd.DataFrame) -> pd.Series:
+def _create_strategy_label(df: pd.DataFrame) -> pd.Series:
     """Создает метку стратегии"""
     return (
             "DOP" + df['target_mt_dop'].astype(int).astype(str) + "_" +
@@ -45,6 +45,7 @@ def load_and_clean_data(self, uri: str, table_name: str) -> pd.DataFrame:
 
     df['strategy_label'] = self._create_strategy_label(df)
     df['base_pmu'] = df['target_mem_limit_dop0']  # Цель для регрессора
+    df.drop(columns='target_mem_limit_dop0')
 
     # Фильтрация выбросов (ваши принципы)
     df = df[df['metric_pmu'] > 0]

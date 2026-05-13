@@ -25,7 +25,7 @@ def debug_model_logic(trained_model, model_type='cascade'):
         cols = trained_model.feature_cols
         title_suffix = "(First Tree from Random Forest)"
     else:
-        print("Unknown model type for debugging.")
+        print("Unknown ml_models type for debugging.")
         return
 
     print("\n" + "=" * 50)

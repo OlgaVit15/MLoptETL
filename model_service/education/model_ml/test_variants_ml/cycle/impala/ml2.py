@@ -95,7 +95,7 @@ def evaluate_impala_model(model, df_raw):
     # 2. Обучаем модель
     model.train(train_df)
 
-    # debug_model_logic(model)
+    # debug_model_logic(ml_models)
 
     results = []
 

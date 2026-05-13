@@ -3,6 +3,7 @@ import logging
 import time
 import psycopg2
 
+
 class PostgresExecutor:
     """Исполнитель запросов PostgreSQL с поддержкой параметров сессии и EXPLAIN ANALYZE"""
 
@@ -28,6 +29,10 @@ class PostgresExecutor:
             # 3. Применение настроек сессии
             if params:
                 for key, value in params.items():
+                    if key == 'max_parallel_workers_per_gather' and value > 0:
+                        cur.execute("SET LOCAL min_parallel_table_scan_size = 0;")
+                        cur.execute("SET LOCAL parallel_setup_cost = 0;")
+                        cur.execute("SET LOCAL parallel_tuple_cost = 0;")
                     cur.execute(f"SET LOCAL {key} = %s;", (value,))
 
             # 4. Выполнение EXPLAIN ANALYZE

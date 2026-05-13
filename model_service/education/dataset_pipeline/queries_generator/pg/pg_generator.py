@@ -2,6 +2,8 @@ import duckdb
 import pandas as pd
 import random
 import logging
+
+import regex
 from sqlglot import parse_one, exp, transpile
 
 
@@ -94,52 +96,49 @@ class PGSQLGenerator:
         return tree
 
     def gen_sqlsmith_safe(self):
+        """Генерация с нуля с гарантированными ON-clause."""
         try:
-            # Выбираем стартовую таблицу (факт)
-            fact_tables = ['store_sales', 'catalog_sales', 'web_sales', 'inventory']
-            fact = random.choice(fact_tables)
+            fact = random.choice(['call_center', 'catalog_page', 'catalog_returns',
+                                  'catalog_sales', 'customer', 'customer_address', 'customer_demographics',
+                                  'household_demographics', 'income_band', 'inventory',
+                                  'item', 'promotion', 'reason', 'ship_mode',
+                                  'store', 'store_returns', 'store_sales', 'time_dim', 'warehouse', 'web_page',
+                                  'web_returns',
+                                  'web_sales', 'web_site'])
             selected_tables = {fact}
             joins = []
 
-            # Пытаемся добавить 2-3 связанных таблицы
-            for _ in range(random.randint(2, 4)):
-                # Ищем возможные связи для уже выбранных таблиц
-                possible = [
-                    lnk for lnk in self.tpcds_links
-                    if (lnk[0] in selected_tables and lnk[2] not in selected_tables) or
-                       (lnk[2] in selected_tables and lnk[0] not in selected_tables)
-                ]
-
-                if not possible: break
-
-                t1, c1, t2, c2 = random.choice(possible)
+            for _ in range(2):
+                # range(random.randint(2, 4)):
+                possible = [r for r in self.relations if (r[0] in selected_tables and r[1] not in selected_tables) or (
+                        r[1] in selected_tables and r[0] not in selected_tables)]
+                # print(f"relations {self.relations}")
+                if not possible:
+                    break
+                # else:
+                # print(f"possible!")
+                t1, t2, col = random.choice(possible)
                 t_new = t2 if t1 in selected_tables else t1
-                joins.append(f"INNER JOIN {t_new} ON {t1}.{c1} = {t2}.{c2}")
+                join_type = ["INNER JOIN", "LEFT JOIN", "LEFT JOIN [SHUFFLE]", "LEFT ANTI JOIN",
+                             'FULL JOIN']
+                t1c = f'{"inv" if t1 == "inventory" else "".join(regex.findall(r'(?<=^|_)\w', t1))}_{col}'
+                t2c = f'{"inv" if t2 == "inventory" else "".join(regex.findall(r'(?<=^|_)\w', t2))}_{col}'
+                joins.append(f"{join_type[random.randint(0, len(join_type))]} {t_new} ON {t1}.{t1c} = {t2}.{t2c}")
                 selected_tables.add(t_new)
 
-            # Выбираем колонки с префиксом таблицы
             cols = []
             for t in selected_tables:
-                # Берем 1-2 случайные колонки из каждой таблицы
-                target_cols = random.sample(self.schema[t], k=min(2, len(self.schema[t])))
-                for c in target_cols:
-                    cols.append(f"{t}.{c}")
-
-            if not cols: return None
-
-            sql = f"SELECT {', '.join(cols)} FROM {fact} {' '.join(joins)} WHERE 1=1 "
-
-            # Добавляем случайный фильтр для изменения плана
-            filter_t = random.choice(list(selected_tables))
-            filter_c = random.choice(self.schema[filter_t])
-            sql += f" AND {filter_t}.{filter_c} IS NOT NULL LIMIT {random.randint(100, 1000)}"
-
+                cols.append(f"{t}.{random.choice(self.schema[t])}")
+            expr_cols = ', '.join(cols[:5])
+            if random.randint(1, 100) % 2 == 0:
+                sql = f"SELECT {expr_cols} FROM {fact} {' '.join(joins)} LIMIT {random.randint(50, 500)}"
+            else:
+                sql = f"SELECT {expr_cols}, count(*) FROM {fact} {' '.join(joins)} GROUP BY {expr_cols} LIMIT {random.randint(50, 500)}"
             return sql
-        except Exception as e:
-            logging.error(f"SQLSmith error: {e}")
+        except:
             return None
 
-    def generate_all(self, count_per_tpl=5, smith_count=500):
+    def generate_all(self, count_per_tpl=5, smith_count=500, add_orig=True):
         final_queries = set()
 
         # 1. Обработка шаблонов TPC-DS
@@ -149,26 +148,27 @@ class PGSQLGenerator:
                 tree = parse_one(tpl, read='duckdb')
 
                 # Добавляем оригинал
-                final_queries.add(tree.sql(dialect='postgres'))
+                if add_orig:
+                    final_queries.add(tree.sql(dialect='postgres'))
 
-                for _ in range(count_per_tpl):
-                    mutated = self.mutate_tree(tree.copy())
-                    # Принудительная типизация при генерации SQL
-                    sql = mutated.sql(dialect='postgres')
-                    final_queries.add(sql)
+                # for _ in range(count_per_tpl):
+                #     mutated = self.mutate_tree(tree.copy())
+                #     # Принудительная типизация при генерации SQL
+                #     sql = mutated.sql(dialect='postgres')
+                #     final_queries.add(sql)
             except:
                 continue
 
         # 2. SQLsmith (с исправленной логикой префиксов)
-        for _ in range(smith_count):
-            raw = self.gen_sqlsmith_safe()
-            if raw:
-                try:
-                    # Прогоняем через transpile для унификации стиля
-                    sql = transpile(raw, read='postgres', write='postgres')[0]
-                    final_queries.add(sql)
-                except:
-                    continue
+        # for _ in range(smith_count):
+        #     raw = self.gen_sqlsmith_safe()
+        #     if raw:
+        #         try:
+        #             # Прогоняем через transpile для унификации стиля
+        #             sql = transpile(raw, read='postgres', write='postgres')[0]
+        #             final_queries.add(sql)
+        #         except:
+        #             continue
 
         return list(final_queries)
 
@@ -177,7 +177,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     gen = PGSQLGenerator()
     # Уменьшаем кол-во для теста, чтобы убедиться в качестве
-    results = gen.generate_all(count_per_tpl=5, smith_count=1000)
+    results = gen.generate_all(count_per_tpl=12, smith_count=50000)
+
+    # while len(results) < 50000:
+    #     results.extend(gen.generate_all(count_per_tpl=12, smith_count=10000, add_orig=False))
 
     df = pd.DataFrame(results, columns=['sql_text'])
     # Удаляем пустые селекты и артефакты
@@ -185,5 +188,5 @@ if __name__ == "__main__":
     # убираем точки с запятой в середине, если они есть
     df['sql_text'] = df['sql_text'].str.replace(';', '')
 
-    df.to_csv("workload_tpcds_pg.csv", index=True, index_label='query_id', sep=';', encoding='utf8')
+    df.to_csv("test_workload_tpcds_pg.csv", index=True, index_label='query_id', sep=';', encoding='utf8')
     print(f"Generated {len(df)} valid queries for PostgreSQL.")

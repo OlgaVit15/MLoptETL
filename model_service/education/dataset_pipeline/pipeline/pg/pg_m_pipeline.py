@@ -62,7 +62,7 @@ class UltimatePGMLPipeline:
 
         # Расчет ошибки планировщика (Actual Rows / Plan Rows)
         # Если планировщик ошибся в 100+ раз — это сигнал проблемного индекса или джойна
-        rows_error = m['actual_rows'] / (p['plan_rows'] + 1)
+        rows_error = m['plan_rows'] / (p['actual_rows'] + 1)
 
         # 1. Критическая нехватка памяти (Spill)
         if spill_blocks > 0:
@@ -189,7 +189,7 @@ class UltimatePGMLPipeline:
 
         return output
 
-    def run(self, csv_path, sf, timeout_ms=120000):
+    def run(self, csv_path, sf, timeout_ms=150000):
         df_workload = pd.read_csv(csv_path, sep=";", encoding='utf8').sample(500)
         start_time = time.time()
 
@@ -223,7 +223,7 @@ class UltimatePGMLPipeline:
 
             baseline_dur = m['duration_ms']
 
-            adaptive_timeout = min(max(baseline_dur * 3, 5000), 120000)
+            adaptive_timeout = min(max(baseline_dur * 3, 5000), 150000)
 
             for attempt in range(2):
                 current_params["statement_timeout"] = adaptive_timeout
@@ -259,11 +259,12 @@ class UltimatePGMLPipeline:
                     break
                 else:
                     print(f"  [-] {reason}. Adjusting...")
-                    self._save(res_obj, self.TABLE_FAILURES, sf)
+                    if ('error' not in reason.lower() or "timeout" in str(errors).lower()) and attempt == 1:
+                        self._save(res_obj, self.TABLE_FAILURES, sf)
                     current_params = self.adjust_settings(res_obj, score, reason)
 
                     if "timeout" in str(errors).lower():
-                        adaptive_timeout = min(adaptive_timeout * 2, 160000)
+                        adaptive_timeout = min(adaptive_timeout * 2, 120000)
 
     def _save(self, res, table, sf):
         flat = self.flatten_results(res, sf)

@@ -1,0 +1,76 @@
+version: '3.8'
+services:
+  pg_optimizer:
+    build:
+      context: .
+      dockerfile: ./services/posgres_service/Dockerfile
+    depends_on:
+      metadata_db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    environment:
+      DSN_META: "postgresql://meta:pass@metadata_db:5432/meta"
+      DSN_PG: "postgresql://meta:pass@metadata_db:5432/meta"
+    restart: always
+    networks:
+      - quickstart-network
+
+  impala_optimizer:
+    build:
+      context: .
+      dockerfile: ./services/impala_service/Dockerfile
+    depends_on:
+      metadata_db:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+    environment:
+      PG_META_URL: "postgresql://meta:pass@metadata_db:5432/meta"
+      IMPALA_URL: "http://impalad-1:25000"
+    restart: always
+    networks:
+      - quickstart-network
+
+  metadata_db:
+    image: postgres:17
+    restart: always
+    ports:
+      - "5433:5432"
+    shm_size: 128mb
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
+    environment:
+      POSTGRES_USER: meta
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: meta
+    volumes:
+      - meta_pg:/var/lib/postgresql/data
+    networks:
+      - quickstart-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meta"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8083:8080
+    depends_on:
+      metadata_db:
+        condition: service_started
+    environment:
+      ADMINER_DEFAULT_SERVER: pg
+    networks:
+      - quickstart-network
+
+
+volumes:
+  meta_pg:
+
+networks:
+  quickstart-network:
+    external:
+      true

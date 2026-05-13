@@ -43,7 +43,7 @@ def visualize_results(df_with_clusters, model):
     """Визуализация качества кластеризации"""
     # 1. Готовим данные для PCA (берем только признаки, на которых учились)
     X_features = df_with_clusters[model.feature_cols].fillna(0)
-    # X_scaled = model.scaler.transform(X_features)
+    # X_scaled = ml_models.scaler.transform(X_features)
     X_scaled = X_features.to_numpy()
 
     pca = PCA(n_components=2)

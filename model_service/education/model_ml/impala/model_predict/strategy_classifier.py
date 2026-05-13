@@ -1,10 +1,9 @@
 import numpy as np
 import pandas as pd
 import logging
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Optional
 
-from sqlalchemy import create_engine
-from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
 from sklearn.preprocessing import QuantileTransformer, StandardScaler
 from sklearn.pipeline import Pipeline
 from catboost import CatBoostClassifier
@@ -42,28 +41,39 @@ class StrategyCascadeClassifier:
                 "CG" + df['target_disable_codegen'].astype(str).str.upper()
         )
 
+    def extract_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        features_list = df.apply(self.extract_features_s, axis=1)
+        features_df = pd.DataFrame(features_list.tolist(), index=df.index)
+
+        return features_df.replace([np.inf, -np.inf], 0).fillna(0)
+
     @staticmethod
-    def extract_features(df: pd.DataFrame) -> pd.DataFrame:
+    def extract_features_s(df: dict) -> list:
         """Генерация каскадных и физических признаков."""
-        X = pd.DataFrame(index=df.index)
-
         # 1. КАСКАДНЫЙ ПРИЗНАК
-        X['base_pmu'] = df['target_mem_limit_dop0']
-        X['log_base_pmu'] = np.log1p(df['target_mem_limit_dop0'])
-
+        log_base_pmu = np.log1p(df['base_pmu'])
         # 2. ФИЗИЧЕСКИЕ ПАРАМЕТРЫ ПЛАНА
-        X['scans'] = df['feature_plan_num_scan_nodes']
-        X['joins'] = df['feature_plan_num_joins']
-        X['aggs'] = df['feature_plan_num_agg_nodes']
-        X['vol_theory'] = df['feature_plan_max_cardinality'] * df['feature_plan_max_row_size']
-        X['log_scan_size'] = np.log1p(df['feature_plan_total_scan_size_bytes'])
-
+        scans = df['feature_plan_num_scan_nodes']
+        joins = df['feature_plan_num_joins']
+        aggs = df['feature_plan_num_agg_nodes']
+        vol_theory = df['feature_plan_max_cardinality'] * df['feature_plan_max_row_size']
+        log_scan_size = np.log1p(df['feature_plan_total_scan_size_bytes'])
         # 3. ПРОИЗВОДНЫЕ
-        nodes = df['feature_plan_num_scan_nodes'].replace(0, 1)
-        X['pmu_per_node'] = df['target_mem_limit_dop0'] / nodes
-        X['row_size'] = df['feature_plan_max_row_size']
+        nodes = df['feature_plan_num_scan_nodes']
+        pmu_per_node = df['base_pmu'] / nodes
+        row_size = df['feature_plan_max_row_size']
 
-        return X.fillna(0)
+        return [
+            log_base_pmu,
+            scans,
+            joins,
+            aggs,
+            vol_theory,
+            log_scan_size,
+            nodes,
+            pmu_per_node,
+            row_size
+        ]
 
     def _get_model_pipeline(self, n_samples: int) -> Pipeline:
         """Создание пайплайна с сохранением всех гиперпараметров CatBoost."""
@@ -99,23 +109,23 @@ class StrategyCascadeClassifier:
         1. Обучение классификатора.
         2. Формирование карты стратегий и коэффициентов запаса.
         """
-        # X = self.extract_features(df)
-        # y = df[self.target_column]
-        # self.feature_columns = X.columns.tolist()
-        #
-        # X_train, X_test, y_train, y_test = train_test_split(
-        #     X, y, test_size=0.2, random_state=self.random_state, stratify=y
-        # )
         X_train = self.extract_features(df_tr)
-        X_test = self.extract_features(df_t)
         y_train = df_tr[self.target_column]
         y_test = df_t[self.target_column]
+        X_test = df_t.drop(columns=self.target_column)
 
-        self.feature_columns = X_train.columns.tolist()
+        # self.feature_columns = X_train.columns.tolist()
 
         logger.info(f"Запуск обучения на {len(y_train.unique())} уникальных стратегий...")
         self.model = self._get_model_pipeline(len(X_train))
         self.model.fit(X_train, y_train)
+
+        # feature_dop = pd.Series(self.model.get_feature_importance(),index=X_train.columns)
+        # # Строим график
+        # plt.figure(figsize=(10, 8))
+        # feature_dop.plot(kind='barh')
+        # plt.title('Важность признаков CatBoost DOP')
+        # plt.show()
 
         # --- КАРТА СТРАТЕГИЙ (на основе тренировочных данных) ---
         df_train = df_tr.loc[X_train.index]
@@ -136,49 +146,43 @@ class StrategyCascadeClassifier:
                 'codegen': sample['target_disable_codegen']
             }
 
-            # Коэффициент запаса по памяти (90-й перцентиль соотношения)
-            ratios = group['metric_pmu'] / group['target_mem_limit_dop0']
-            self.pmu_adjustments[label] = float(np.percentile(ratios, 90))
+            # Коэффициент запаса по памяти
+            ratios = group['metric_pmu'] / group['base_pmu']
+            self.pmu_adjustments[label] = float(np.percentile(ratios, 70))
 
         return X_test, y_test
 
-    def predict(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Предсказание полной стратегии и лимита памяти.
-        Возвращает DataFrame с параметрами.
-        """
+    def predict(self, X_raw: pd.DataFrame) -> pd.DataFrame:
+        results = []
+        for _, row in X_raw.iterrows():
+            result = self.predict_s(row.to_dict())
+            results.append(result)
+
+        return pd.DataFrame(results, index=X_raw.index)
+
+    def predict_s(self, row: dict) -> dict:
         if self.model is None:
             raise ValueError("Модель не обучена!")
+        X_input = np.array([self.extract_features_s(row)])
+        y_pred_label = self.model.predict(X_input)[0][0]
 
-        # Убеждаемся, что фичи подготовлены
-        if not set(self.feature_columns).issubset(X.columns):
-            X_input = self.extract_features(X)
-        else:
-            X_input = X[self.feature_columns]
+        label = y_pred_label
 
-        y_pred_labels = self.model.predict(X_input)
-        if y_pred_labels.ndim > 1:
-            y_pred_labels = y_pred_labels.flatten()
+        # Получаем метаданные из карт (с использованием fallback)
+        strat_params = self.strategy_map.get(label, self.strategy_map[self.fallback_label])
+        adj = self.pmu_adjustments.get(label, 1.2)
 
-        predictions = []
-        for i in range(len(X_input)):
-            label = y_pred_labels[i]
+        base_pmu = row['base_pmu']
 
-            # Получаем метаданные из карт (с использованием fallback)
-            strat_params = self.strategy_map.get(label, self.strategy_map[self.fallback_label])
-            adj = self.pmu_adjustments.get(label, 1.2)
+        pred_mem_limit = base_pmu * adj
 
-            base_pmu = X_input.iloc[i]['base_pmu']
-            pred_mem_limit = base_pmu * adj
+        res = {
+            'strategy_label': label,
+            'pred_mem_limit': pred_mem_limit,
+            **strat_params
+        }
 
-            res = {
-                'strategy_label': label,
-                'pred_mem_limit': pred_mem_limit,
-                **strat_params
-            }
-            predictions.append(res)
-
-        return pd.DataFrame(predictions, index=X.index)
+        return res
 
     def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series, full_df: pd.DataFrame) -> Dict[str, Any]:
         """Расчет метрик качества каскада."""
@@ -187,9 +191,14 @@ class StrategyCascadeClassifier:
 
         # 1. Точность классификации
         acc_strategy = accuracy_score(y_test, results_pred['strategy_label'])
-        logging.info(f"check check {actuals.head}")
-        logging.info(f"check check {actuals.columns}")
-        acc_dop = (actuals['target_mt_dop'].values == results_pred['mt_dop'].values).mean()
+        # acc_dop = (actuals['target_mt_dop'].values == results_pred['mt_dop'].values).mean()
+        acc_dop = accuracy_score(y_test['target_mt_dop'], results_pred['mt_dop'])
+        # Точность джойнов
+        acc_join = accuracy_score(y_test['target_default_join_distribution_mode'], results_pred['join_mode'])
+        # Точность threads
+        acc_t = accuracy_score(y_test['target_num_scanner_threads'], results_pred['threads'])
+        # Точность codegen
+        acc_cg = accuracy_score(y_test['target_disable_codegen'], results_pred['codegen'])
 
         # 2. Метрики памяти
         y_actual_mem = actuals['metric_pmu'].round(0).astype(int)
@@ -204,6 +213,9 @@ class StrategyCascadeClassifier:
         print("=" * 40)
         print(f"Accuracy (Стратегия): {acc_strategy:.2%}")
         print(f"Accuracy (DOP):       {acc_dop:.2%}")
+        print(f"Accuracy (JOIN):       {acc_join:.2%}")
+        print(f"Accuracy (THREADS):       {acc_t:.2%}")
+        print(f"Accuracy (CODEGEN):       {acc_cg:.2%}")
         print(f"R2 Memory:            {r2_mem:.4f}")
         print(f"MAE Memory:           {mae_mem:.2f} MB")
         print(f"OOM Rate:             {oom_rate:.2%}")
@@ -216,4 +228,3 @@ class StrategyCascadeClassifier:
             "MAE_Memory": mae_mem,
             "OOM_Rate": oom_rate
         }
-

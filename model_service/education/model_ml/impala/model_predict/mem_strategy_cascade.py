@@ -7,7 +7,7 @@ import logging
 
 from sqlalchemy import create_engine
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, accuracy_score, mean_absolute_error
+from sklearn.metrics import r2_score, accuracy_score, mean_absolute_error, classification_report
 
 from model_ml.impala.model_predict.mem_regressor import MemoryLimitPredictor
 from model_ml.impala.model_predict.strategy_classifier import StrategyCascadeClassifier
@@ -66,6 +66,7 @@ class ImpalaOptimizationCascade:
 
         df['strategy_label'] = self._create_strategy_label(df)
         df['base_pmu'] = df['target_mem_limit_dop0']  # Цель для регрессора
+        df.drop(columns='target_mem_limit_dop0')
 
         # Фильтрация выбросов (ваши принципы)
         df = df[df['metric_pmu'] > 0]
@@ -95,7 +96,7 @@ class ImpalaOptimizationCascade:
         logger.info("--- Этап 1: Обучение Регрессора (Memory) ---")
         # Обучаем регрессор
         X_test, y_test = self.regressor.train(df_train, df_test)
-        res1 = self.regressor.evaluate(X_test, y_test)
+        res1 = self.regressor.evaluate(df_test, y_test)
 
         logger.info("--- Этап 2: Подготовка данных для Классификатора ---")
 
@@ -148,6 +149,9 @@ class ImpalaOptimizationCascade:
 
         # Метрики классификации (DOP)
         acc_dop = accuracy_score(df_test['target_mt_dop'], results['mt_dop'])
+        print(classification_report(df_test['target_mt_dop'], results['mt_dop']))
+        print(classification_report(df_test['target_num_scanner_threads'], results['threads']))
+        print(classification_report(df_test['target_default_join_distribution_mode'], results['join_mode']))
 
         # Метрики памяти (Итоговый лимит vs Реальное потребление metric_pmu)
         y_actual = df_test['metric_pmu']
@@ -196,7 +200,7 @@ class ImpalaOptimizationCascade:
     def load(file_path: str):
         """
         Статический метод для загрузки обученного каскада из файла.
-        Использование: model = ImpalaOptimizationCascade.load("path/to/model.joblib")
+        Использование: ml_models = ImpalaOptimizationCascade.load("path/to/ml_models.joblib")
         """
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Файл {file_path} не найден.")

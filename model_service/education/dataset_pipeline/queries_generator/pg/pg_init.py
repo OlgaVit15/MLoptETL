@@ -4,10 +4,10 @@ import time
 import logging
 
 # --- НАСТРОЙКИ ---
-pg_schema = "tpcds_big"  # схема в Postgres
+pg_schema = "tpcds_test"  # схема в Postgres
 
 # Параметры подключения к Postgres
-PG_CONN_STR = "host=localhost port=5432 dbname=model_edu_pg user=suser password=example"
+PG_CONN_STR = "host=localhost port=5432 dbname=imdb user=imdb"
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -163,4 +163,4 @@ def generate_tpcds_to_pg(scale_factor=1):
 
 
 if __name__ == '__main__':
-    generate_tpcds_to_pg(scale_factor=7)
+    generate_tpcds_to_pg(scale_factor=3)

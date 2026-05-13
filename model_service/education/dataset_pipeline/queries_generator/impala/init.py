@@ -3,7 +3,7 @@ from impala.dbapi import connect
 
 bucket = "tpcds"
 db_test = "s3_tpcds_test"
-db = "s3_tpcds_medium"
+db = "s3_tpcds"
 
 
 def get_conn_url(b: str, d: str):
@@ -79,4 +79,4 @@ def generate_tpcds_to_s3(scale_factor=1, s3_bucket='tpcds'):
 
 
 if __name__ == '__main__':
-    generate_tpcds_to_s3(scale_factor=5)
+    generate_tpcds_to_s3(scale_factor=2)

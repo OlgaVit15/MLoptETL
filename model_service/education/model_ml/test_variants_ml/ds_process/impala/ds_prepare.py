@@ -112,4 +112,4 @@ class ImpalaDatasetPreparer:
 # train_data, test_data = preparer.prepare_full_pipeline(df_sql_raw)
 
 # Теперь эти данные можно подавать в модель:
-# model.train(train_data)
+# ml_models.train(train_data)
