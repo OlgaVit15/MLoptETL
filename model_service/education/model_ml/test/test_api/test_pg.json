@@ -1,0 +1,14 @@
+{
+    "feature_num_joins": 1,
+    "feature_num_scans": 2,
+    "feature_num_index_scans": 1,
+    "feature_num_aggs": 2,
+    "feature_num_sorts": 1,
+    "feature_num_filters": 2,
+    "feature_plan_width": 24,
+    "feature_num_mem_nodes": 2,
+    "feature_total_cost": 12343,
+    "feature_plan_rows": 12433,
+    "feature_total_scan_size_bytes": 1234567886,
+    "feature_max_node_cost": 1241
+}

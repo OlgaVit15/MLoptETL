@@ -60,7 +60,7 @@ def get_expert_model(n_samples):
     # Ядро для Гауссовского процесса:
     # Matern (гибкое) + WhiteKernel (компенсация шума плана)
     kernel = C(1.0) * Matern(length_scale=1.0, nu=1.5) + WhiteKernel(noise_level=0.1)
-
+ф
     gpr = GaussianProcessRegressor(
         kernel=kernel,
         n_restarts_optimizer=5,

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="9f9ea100-753a-4bd7-a984-12f0de56f919" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../.idea/model_service.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/CatBoost/mem_regressor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/CatBoost/mem_strategy_cascade.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/CatBoost/strategy_classifier.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/RandomForest/ensemble2.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/XGboost/xgb_mem_regressor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/XGboost/xgb_mem_strategy_cascade.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/XGboost/xgb_strategy_classifier.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/benchmark.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/catboost_info/catboost_training.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/catboost_info/learn/events.out.tfevents" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/catboost_info/learn_error.tsv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/catboost_info/time_left.tsv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/ml_cycle.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/ml_training_dataset.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/models/impala_cascade_20260521_232240.joblib" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/models/impala_cascade_20260521_233257.joblib" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/models/impala_cascade_20260521_235952.joblib" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/models/xgbimpala_cascade_20260521_233257.joblib" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/models/xgbimpala_cascade_20260521_235952.joblib" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/results_cb.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/results_rf.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/results_t.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/results_xgb.csv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/test_api/test.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/test_distribution.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/test_pllot_complex.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../education/model_ml/test/test_results_plot.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../education/model_ml/impala/prob_test/gml.py" beforeDir="false" afterPath="$PROJECT_DIR$/../education/model_ml/impala/prob_test/gml.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4
+}]]></component>
+  <component name="ProjectId" id="3EAJ0lYIVOeY5uagMz5ESmkuf4A" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "dev",
+    "last_opened_file_path": "D:/ITMO-диплом/project/MLoptETL/model_service/query_optimizer"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-50da183f06c8-d3b881c8e49f-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-233.13135.95" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9f9ea100-753a-4bd7-a984-12f0de56f919" name="Changes" comment="" />
+      <created>1779615219166</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1779615219166</updated>
+    </task>
+    <servers />
+  </component>
+</project>

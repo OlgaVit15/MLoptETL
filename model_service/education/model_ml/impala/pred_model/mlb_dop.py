@@ -118,7 +118,7 @@ if __name__ == '__main__':
     X = prepare_advanced_features(df)
     y = df[TARGET_COLUMN]
 
-    # Важно: stratify=y гарантирует, что все уровни DOP попадут и в train, и в test
+    # Важно: stratify=y гарантирует, что все уровни DOP попадут и в train, и в test_with_bao
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
     )

@@ -1,0 +1,11 @@
+{
+    "feature_plan_num_joins": 2,
+    "feature_plan_num_broadcast_joins": 0,
+    "feature_plan_num_scan_nodes": 2,
+    "feature_plan_num_agg_nodes": 0,
+    "feature_plan_num_files": 3,
+    "feature_plan_has_missing_stat": 0,
+    "feature_plan_total_scan_size_bytes": 1234567,
+    "feature_plan_max_cardinality": 12345,
+    "feature_plan_max_row_size": 1234
+}

@@ -6,7 +6,7 @@ from common.impala_operator import ImpalaExecuteOperator
 
 @dag(start_date=datetime(2026, 3, 15), schedule="@daily")
 def create_dag():
-    test = ImpalaExecuteOperator(task_id="test", conn_id="impala",
+    test = ImpalaExecuteOperator(task_id="test_with_bao", conn_id="impala",
                                  sql="select max(sr_customer_sk), count(distinct sr_customer_sk) from "
                                      "s3_tpcds_small.store_returns",
                                  configurations={"mem_limit": "4g", "request_pool": "default", "mt_dop": "2"},
